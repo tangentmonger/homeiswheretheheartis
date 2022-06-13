@@ -2,8 +2,17 @@
 
 #include <Arduino.h>
 
-#define CHANNEL 1
+#include <OSCMessage.h>
+#include <OSCBoards.h>
+
+
+
+#include <SLIPEncodedSerial.h>
+ SLIPEncodedSerial SLIPSerial(Serial); // Change to Serial1 or Serial2 etc. for boards with multiple serial ports that don’t have Serial
+
+
 #define TIMEOUT_MS (5 * 1000)
+#define CHANNEL 1
 
 // LXn cues, also used as the state machine
 #define OFF 0
@@ -33,6 +42,9 @@ int timerStart = -1 * TIMEOUT_MS;  // start in a timed-out state
 
 
 
+
+
+
 void sendMIDINoteOnOff(byte note)
 {
     //MIDI channels 1-16 are really 0-15
@@ -57,8 +69,8 @@ void sendMIDINoteOnOff(byte note)
 
 void setup()
 {
-    //Set up serial output with standard MIDI baud rate
-    Serial.begin(31250);
+    SLIPSerial.begin(14400);   // set this as high as you can reliably run on your platform
+    
     pinMode(LED_BUILTIN, OUTPUT);
     
     pinMode(PORTAL_1_SENSOR, INPUT);
@@ -88,7 +100,14 @@ void loop()
 {
     while(true)
     {
-        sendMIDINoteOnOff(PORTAL_1_PULSE);
+        //the message wants an OSC address as first argument
+        OSCMessage msg("/eos/1/cue/fire");
+        //msg.add(256);
+
+        SLIPSerial.beginPacket();  
+        msg.send(SLIPSerial); // send the bytes to the SLIP stream
+        SLIPSerial.endPacket(); // mark the end of the OSC Packet
+        msg.empty(); // free space occupied by message
         delay(1000);
     
     }
